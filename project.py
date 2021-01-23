@@ -156,6 +156,7 @@ if __name__ == '__main__':
     borders, coins = pg.sprite.Group(), pg.sprite.Group()
     bird = Bird()
     running = True
+    coin = pg.transform.scale(load_image('coin.png'), (16, 22))
     birds.draw(screen)
     while running:
         for event in pg.event.get():
@@ -189,20 +190,21 @@ if __name__ == '__main__':
         coins.update()
         coins.draw(screen)
         borders.update()
-        font = pg.font.Font(None, 28)  # отображаемый ник
-        text = font.render(str(player.nickname), True, (pg.Color('darkblue')))
-        screen.blit(text, (20, 20))
-        font = pg.font.Font(None, 28)  # рекорд игрока
-        text = font.render('Рекорд: ' + str(player.record), True, (pg.Color('darkblue')))
-        screen.blit(text, (20, 44))
-        font = pg.font.Font(None, 50)  # счетчик пройденных препятствий
-        text = font.render(str(bird.score_count), True, (pg.Color('darkblue')))
+        font = pg.font.Font('font.ttf', 40)  # отображаемый ник
+        text = font.render(str(player.nickname), True, (5, 50, 14))
+        screen.blit(text, (30, 14))
+        font = pg.font.Font('font.ttf', 38)  # рекорд игрока
+        text = font.render('Рекорд: ' + str(player.record), True, (5, 50, 14))
+        screen.blit(text, (30, 45))
+        font = pg.font.Font('font.ttf', 66)  # счетчик пройденных препятствий
+        text = font.render(str(bird.score_count), True, (5, 50, 14))
         text_x = width // 2 - text.get_width() // 2
-        screen.blit(text, (text_x, 24))
-        font = pg.font.Font(None, 28)  # кол-во монет
+        screen.blit(text, (text_x, 18))
+        font = pg.font.Font('font.ttf', 42)  # кол-во монет
         text = font.render(str(player.money).rjust(6, '0'),
-                           True, (pg.Color('darkblue')))
-        screen.blit(text, (screen.get_width() - 90, 20))
+                           True, (5, 50, 14))
+        screen.blit(text, (screen.get_width() - 104, 20))
+        screen.blit(coin, (573, 28))
         clock.tick(FPS)
         pg.display.flip()
     pg.quit()
