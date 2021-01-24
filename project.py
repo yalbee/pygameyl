@@ -2,6 +2,7 @@ import pygame as pg
 import sys
 import os
 import random
+import csv
 
 FPS = 60
 TUBE_SPAWN = pg.USEREVENT + 1
@@ -9,10 +10,19 @@ TUBE_SPAWN = pg.USEREVENT + 1
 
 class Player:  # профиль игрока
     def __init__(self, nickname):
-        self.nickname, self.money = nickname, 0
-        self.record = 0
+        self.nickname = nickname
+        with open('data.csv', 'r', encoding='utf-8') as csvfile:  # загрузка данных игрока из csv файла
+            reader = csv.DictReader(csvfile, delimiter=';', quotechar='"')
+            self.record, self.money = 0, 0
+            for line in reader:
+                if line['nickname'] == self.nickname:
+                    self.record, self.money = int(line['record']), int(line['money'])
+                else:
+                    csvlines.append(line)
 
 
+# файл с сохранениями каждый запуск перезаписывается а новые данные будут записаны в конец
+csvlines = []
 nickname = input('Введите ник (не более 22 символов): ')
 if len(nickname.strip()) == 0 or len(nickname.strip()) > 22:
     print('еррор')
@@ -232,4 +242,12 @@ if __name__ == '__main__':
         screen.blit(coin, (573, 28))
         clock.tick(FPS)
         pg.display.flip()
+    if player.record != 0 and player.money != 0:
+        csvlines.append({'nickname': player.nickname,
+                         'record': player.record, 'money': player.money})
+    writer = csv.DictWriter(open('data.csv', 'w', encoding='utf-8'),
+                            fieldnames=['nickname', 'record', 'money'],
+                            delimiter=';', quotechar='"')
+    writer.writeheader()
+    writer.writerows(csvlines)  # сохранение данных игрока в csv файл
     pg.quit()
