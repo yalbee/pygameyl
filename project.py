@@ -13,8 +13,8 @@ class Player:  # профиль игрока
         self.record = 0
 
 
-nickname = input('Введите ник (не более 21 символа): ')
-if len(nickname.strip()) == 0 or len(nickname.strip()) > 21:
+nickname = input('Введите ник (не более 22 символов): ')
+if len(nickname.strip()) == 0 or len(nickname.strip()) > 22:
     print('еррор')
     sys.exit()
 player = Player(nickname.strip())
@@ -59,7 +59,7 @@ class AnimatedSprite(pg.sprite.Sprite):
 
     def cut_sheet(self, sheet, columns, rows):
         self.rect = pg.Rect(0, 0, sheet.get_width() // columns,
-                                sheet.get_height() // rows)
+                            sheet.get_height() // rows)
         for j in range(rows):
             for i in range(columns):
                 frame_location = (self.rect.w * i, self.rect.h * j)
@@ -86,7 +86,7 @@ class Bird(AnimatedSprite):  # птичка
                 self.image = self.frames[self.cur_frame]
                 self.image = rot_center(self.image, 45)
             self.update_count += 1
-        if self.cur_frame % len(self.frames) == 0:
+        if self.cur_frame % len(self.frames) == 0:  # остановка анимации
             self.flapping, self.update_count = False, 0
         if self.vy == 0 or self.vy == 7 or self.vy == 12:  # повороты птички
             self.image = rot_center(self.image, -45)
@@ -96,12 +96,16 @@ class Bird(AnimatedSprite):  # птичка
             self.score_count += 1
         if pg.sprite.spritecollide(self, coins, True):  # собрал монетку
             player.money += 10
+            Shadow(self.rect.x + 10, self.rect.y - 60, moving=True)
         if pg.sprite.spritecollideany(self, tubes) or \
                 self.rect.y < 0 or self.rect.y + self.rect.h > 500:  # столкновение
             if self.score_count > player.record:  # установка рекорда
                 player.record = self.score_count
-            player.money += round(self.score_count * (random.randint(80, 120) / 100))
+            money = round(self.score_count * (random.randint(80, 120) / 100))
             # счет игрока умноженный на случайный коэфф. прибавляется к кол-ву монет
+            player.money += money
+            if money != 0:
+                Shadow(screen.get_width() - 104, 46, money)
             self.kill()
 
 
@@ -145,15 +149,34 @@ class Coin(AnimatedSprite):  # монетка
         self.update_count += 1
 
 
+class Shadow(pg.sprite.Sprite):  # тень после сбора монетки
+    def __init__(self, x, y, money=10, moving=False):
+        super().__init__(shadows)
+        self.image = pg.Surface((50, 40), pg.SRCALPHA)
+        self.rect = pg.Rect(x, y, 50, 40)
+        self.alpha, self.money, self.moving = 255, money, moving
+        self.font = pg.font.Font('font.ttf', 50)
+
+    def update(self):
+        text = self.font.render('+' + str(self.money), True, pg.Color(230, 180, 40, self.alpha))
+        self.image.blit(text, (0, 0))
+        if self.moving:
+            self.rect = self.rect.move(-3, 0)
+        self.alpha -= 3
+        if self.alpha <= 0:
+            self.kill()
+
+
 if __name__ == '__main__':
     background = pg.transform.scale(load_image('background.png'), (700, 500))
     background_x = 0
     screen.blit(background, (0, 0))
     pg.display.set_caption('праэкт')
     clock = pg.time.Clock()
-    pg.time.set_timer(TUBE_SPAWN, 1600)
+    pg.time.set_timer(TUBE_SPAWN, 1600)  # таймер спавна препятствий
     birds, tubes = pg.sprite.Group(), pg.sprite.Group()
     borders, coins = pg.sprite.Group(), pg.sprite.Group()
+    shadows = pg.sprite.Group()
     bird = Bird()
     running = True
     coin = pg.transform.scale(load_image('coin.png'), (16, 22))
@@ -190,6 +213,8 @@ if __name__ == '__main__':
         coins.update()
         coins.draw(screen)
         borders.update()
+        shadows.update()
+        shadows.draw(screen)
         font = pg.font.Font('font.ttf', 40)  # отображаемый ник
         text = font.render(str(player.nickname), True, (5, 50, 14))
         screen.blit(text, (30, 14))
