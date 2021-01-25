@@ -85,7 +85,7 @@ class Bird(AnimatedSprite):  # птичка
         self.vy, self.flapping = 2, False
         self.score_count, self.update_count = 0, 0
 
-    def flap(self):
+    def flap(self):  # прыжок
         self.flapping = True
         self.vy = -10
 
@@ -161,7 +161,7 @@ class Coin(AnimatedSprite):  # монетка
 
 class Shadow(pg.sprite.Sprite):  # тень после сбора монетки
     def __init__(self, x, y, money=10, moving=False):
-        super().__init__(shadows)
+        super().__init__(other_sprites)
         self.image = pg.Surface((50, 40), pg.SRCALPHA)
         self.rect = pg.Rect(x, y, 50, 40)
         self.alpha, self.money, self.moving = 255, money, moving
@@ -186,7 +186,12 @@ if __name__ == '__main__':
     pg.time.set_timer(TUBE_SPAWN, 1600)  # таймер спавна препятствий
     birds, tubes = pg.sprite.Group(), pg.sprite.Group()
     borders, coins = pg.sprite.Group(), pg.sprite.Group()
-    shadows = pg.sprite.Group()
+    other_sprites = pg.sprite.Group()
+    cursor = pg.sprite.Sprite()
+    cursor.image = pg.transform.scale(load_image('cursor.png'), (24, 24))
+    cursor.rect = cursor.image.get_rect()
+    cursor.add(other_sprites)
+    pg.mouse.set_visible(False)
     bird = Bird()
     running = True
     coin = pg.transform.scale(load_image('coin.png'), (16, 22))
@@ -195,6 +200,11 @@ if __name__ == '__main__':
         for event in pg.event.get():
             if event.type == pg.QUIT:
                 running = False
+            if event.type == pg.MOUSEMOTION:  # курсор
+                if pg.mouse.get_focused():
+                    cursor.rect.x, cursor.rect.y = event.pos
+                else:
+                    cursor.rect.x = -100
             if event.type == pg.MOUSEBUTTONDOWN:
                 if event.button == 1 or event.button == 3:
                     bird.flap()
@@ -223,8 +233,8 @@ if __name__ == '__main__':
         coins.update()
         coins.draw(screen)
         borders.update()
-        shadows.update()
-        shadows.draw(screen)
+        other_sprites.update()
+        other_sprites.draw(screen)
         font = pg.font.Font('font.ttf', 40)  # отображаемый ник
         text = font.render(str(player.nickname), True, (5, 50, 14))
         screen.blit(text, (30, 14))
