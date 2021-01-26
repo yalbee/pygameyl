@@ -116,6 +116,8 @@ class Bird(AnimatedSprite):  # птичка
             player.money += money
             if money != 0:
                 Shadow(screen.get_width() - 104, 46, money)
+            Button((262, 218), 250, 64, (175, 54, 54), 'Играть снова', start_playing)
+            Button((188, 218), 64, 64, (55, 42, 42), '<', show_menu)
             self.kill()
 
 
@@ -128,7 +130,7 @@ class Tube(pg.sprite.Sprite):  # препятствие
 
     def update(self):
         self.rect = self.rect.move(-3, 0)
-        if self.rect.x + 60 < 0:
+        if self.rect.x + self.rect.width < 0:
             self.kill()
 
 
@@ -157,6 +159,8 @@ class Coin(AnimatedSprite):  # монетка
             self.image = self.frames[self.cur_frame]
         self.rect = self.rect.move(-3, 0)
         self.update_count += 1
+        if self.rect.x + self.rect.width < 0:
+            self.kill()
 
 
 class Shadow(pg.sprite.Sprite):  # тень после сбора монетки
@@ -177,28 +181,90 @@ class Shadow(pg.sprite.Sprite):  # тень после сбора монетки
             self.kill()
 
 
-if __name__ == '__main__':
-    background = pg.transform.scale(load_image('background.png'), (700, 500))
-    background_x = 0
-    screen.blit(background, (0, 0))
-    pg.display.set_caption('праэкт')
-    clock = pg.time.Clock()
-    pg.time.set_timer(TUBE_SPAWN, 1600)  # таймер спавна препятствий
-    birds, tubes = pg.sprite.Group(), pg.sprite.Group()
-    borders, coins = pg.sprite.Group(), pg.sprite.Group()
-    other_sprites = pg.sprite.Group()
-    cursor = pg.sprite.Sprite()
-    cursor.image = pg.transform.scale(load_image('cursor.png'), (24, 24))
-    cursor.rect = cursor.image.get_rect()
-    cursor.add(other_sprites)
-    pg.mouse.set_visible(False)
-    coin = pg.transform.scale(load_image('coin.png'), (16, 22))
-    bird = Bird()
-    running = True
-    while running:
+class Button(pg.sprite.Sprite):  # кнопка
+    def __init__(self, pos, width, height, color, text, func):
+        super().__init__(buttons)
+        self.image = pg.Surface((width, height), pg.SRCALPHA)
+        self.image.fill(color)
+        self.rect, self.func = pg.Rect(pos[0], pos[1], width, height), func
+        font = pg.font.Font('font.ttf', 50)
+        text = font.render(text, True, (255, 255, 255))
+        self.image.blit(text, (self.image.get_width() // 2 - text.get_width() // 2,
+                               self.image.get_height() // 2 - text.get_height() // 2))
+
+    def update(self):
+        mouse_pos = pg.mouse.get_pos()
+        if self.rect.x < mouse_pos[0] < self.rect.x + self.rect.width and \
+                self.rect.y < mouse_pos[1] < self.rect.y + self.rect.height:
+            pg.draw.rect(screen, (255, 255, 255), self.rect, 2)  # рамка при наведении на кнопку
+            if pg.mouse.get_pressed(3)[0] == 1:
+                self.func()
+
+
+def show_menu():
+    global buttons
+    buttons = pg.sprite.Group()
+    background_x, showing = 0, True
+    Button((225, 282), 250, 50, (175, 54, 54), 'Играть', start_playing)
+    Button((225, 342), 250, 50, (55, 42, 42), 'Магазин', None)
+    while showing:
         for event in pg.event.get():
             if event.type == pg.QUIT:
-                running = False
+                if player.record != 0 and player.money != 0:
+                    csvlines.append({'nickname': player.nickname,
+                                     'record': player.record, 'money': player.money})
+                writer = csv.DictWriter(open('data.csv', 'w', encoding='utf-8'),
+                                        fieldnames=['nickname', 'record', 'money'],
+                                        delimiter=';', quotechar='"')
+                writer.writeheader()
+                writer.writerows(csvlines)  # сохранение данных игрока в csv файл
+                pg.quit()
+                quit()
+            if event.type == pg.MOUSEMOTION:  # курсор
+                if pg.mouse.get_focused():
+                    cursor.rect.x, cursor.rect.y = event.pos
+                else:
+                    cursor.rect.x = -100
+        if background_x - 0.5 <= -700:
+            background_x = 0
+        background_x -= 0.5
+        screen.blit(background, (background_x, 0))  # передвижение заднего фона
+        screen.blit(background, (background_x + screen.get_width(), 0))
+        font = pg.font.Font('font.ttf', 110)
+        text = font.render('Flappy Bird', True, (5, 50, 14))
+        screen.blit(text, (screen.get_width() // 2 - text.get_width() // 2, 30))
+        font = pg.font.Font('font.ttf', 40)  # отображаемый ник
+        text = font.render(str(player.nickname), True, (5, 50, 14))
+        screen.blit(text, (30, 14))
+        buttons.draw(screen)
+        buttons.update()
+        other_sprites.draw(screen)
+        clock.tick(FPS)
+        pg.display.flip()
+
+
+def start_playing():
+    global birds, tubes, borders, coins, buttons
+    birds, tubes = pg.sprite.Group(), pg.sprite.Group()
+    borders, coins = pg.sprite.Group(), pg.sprite.Group()
+    buttons = pg.sprite.Group()
+    bird = Bird()
+    pg.time.set_timer(TUBE_SPAWN, 1600)  # таймер спавна препятствий
+    background_x = 0
+    playing = True
+    while playing:
+        for event in pg.event.get():
+            if event.type == pg.QUIT:
+                if player.record != 0 and player.money != 0:
+                    csvlines.append({'nickname': player.nickname,
+                                     'record': player.record, 'money': player.money})
+                writer = csv.DictWriter(open('data.csv', 'w', encoding='utf-8'),
+                                        fieldnames=['nickname', 'record', 'money'],
+                                        delimiter=';', quotechar='"')
+                writer.writeheader()
+                writer.writerows(csvlines)  # сохранение данных игрока в csv файл
+                pg.quit()
+                quit()
             if event.type == pg.MOUSEMOTION:  # курсор
                 if pg.mouse.get_focused():
                     cursor.rect.x, cursor.rect.y = event.pos
@@ -232,6 +298,8 @@ if __name__ == '__main__':
         coins.update()
         coins.draw(screen)
         borders.update()
+        buttons.draw(screen)
+        buttons.update()
         other_sprites.update()
         other_sprites.draw(screen)
         font = pg.font.Font('font.ttf', 40)  # отображаемый ник
@@ -253,12 +321,20 @@ if __name__ == '__main__':
         screen.blit(coin, (573, 28))
         clock.tick(FPS)
         pg.display.flip()
-    if player.record != 0 and player.money != 0:
-        csvlines.append({'nickname': player.nickname,
-                         'record': player.record, 'money': player.money})
-    writer = csv.DictWriter(open('data.csv', 'w', encoding='utf-8'),
-                            fieldnames=['nickname', 'record', 'money'],
-                            delimiter=';', quotechar='"')
-    writer.writeheader()
-    writer.writerows(csvlines)  # сохранение данных игрока в csv файл
-    pg.quit()
+
+
+if __name__ == '__main__':
+    background = pg.transform.scale(load_image('background.png'), (700, 500))
+    background_x = 0
+    pg.display.set_caption('Flappy Bird')
+    clock = pg.time.Clock()
+    birds, tubes = pg.sprite.Group(), pg.sprite.Group()
+    borders, coins = pg.sprite.Group(), pg.sprite.Group()
+    other_sprites, buttons = pg.sprite.Group(), pg.sprite.Group()
+    cursor = pg.sprite.Sprite()
+    cursor.image = pg.transform.scale(load_image('cursor.png'), (24, 24))
+    cursor.rect = pg.Rect(-100, 0, 24, 24)
+    cursor.add(other_sprites)
+    pg.mouse.set_visible(False)
+    coin = pg.transform.scale(load_image('coin.png'), (16, 22))
+    show_menu()
