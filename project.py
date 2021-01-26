@@ -34,7 +34,7 @@ screen = pg.display.set_mode(size)
 
 
 def load_image(name, colorkey=None):  # загрузка изображений
-    fullname = os.path.join('data', name)
+    fullname = os.path.join('images', name)
     if not os.path.isfile(fullname):
         print(f"Файл с изображением '{fullname}' не найден")
         sys.exit()
@@ -192,10 +192,9 @@ if __name__ == '__main__':
     cursor.rect = cursor.image.get_rect()
     cursor.add(other_sprites)
     pg.mouse.set_visible(False)
+    coin = pg.transform.scale(load_image('coin.png'), (16, 22))
     bird = Bird()
     running = True
-    coin = pg.transform.scale(load_image('coin.png'), (16, 22))
-    birds.draw(screen)
     while running:
         for event in pg.event.get():
             if event.type == pg.QUIT:
@@ -245,6 +244,8 @@ if __name__ == '__main__':
         text = font.render(str(bird.score_count), True, (5, 50, 14))
         text_x = width // 2 - text.get_width() // 2
         screen.blit(text, (text_x, 18))
+        if player.money > 999999:
+            player.money = 999999
         font = pg.font.Font('font.ttf', 42)  # кол-во монет
         text = font.render(str(player.money).rjust(6, '0'),
                            True, (5, 50, 14))
