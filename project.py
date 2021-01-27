@@ -22,9 +22,10 @@ class Player:  # профиль игрока
 
 
 # файл с сохранениями каждый запуск перезаписывается а новые данные будут записаны в конец
+# обновленные профили сохраняются только после выхода
 csvlines = []
-nickname = input('Введите ник (не более 22 символов): ')
-if len(nickname.strip()) == 0 or len(nickname.strip()) > 22:
+nickname = input('Введите ник (не более 14 символов): ')
+if len(nickname.strip()) == 0 or len(nickname.strip()) > 14:
     print('еррор')
     sys.exit()
 player = Player(nickname.strip())
@@ -240,6 +241,7 @@ class Button(pg.sprite.Sprite):  # кнопка
         self.image = pg.Surface((width, height), pg.SRCALPHA)
         self.image.fill(color)
         self.rect, self.func = pg.Rect(pos[0], pos[1], width, height), func
+        pg.draw.rect(self.image, (100, 100, 100), pg.Rect(0, 0, width, height), 3)
         font = pg.font.Font('font.ttf', 50)
         text = font.render(text, True, (255, 255, 255))
         self.image.blit(text, (self.image.get_width() // 2 - text.get_width() // 2,
@@ -249,17 +251,18 @@ class Button(pg.sprite.Sprite):  # кнопка
         mouse_pos = pg.mouse.get_pos()
         if self.rect.x < mouse_pos[0] < self.rect.x + self.rect.width and \
                 self.rect.y < mouse_pos[1] < self.rect.y + self.rect.height:
-            pg.draw.rect(screen, (255, 255, 255), self.rect, 2)  # рамка при наведении на кнопку
+            pg.draw.rect(screen, (255, 255, 255), self.rect, 3)  # рамка при наведении на кнопку
             if pg.mouse.get_pressed(3)[0] == 1:
                 self.func()
 
 
 def show_menu():
-    global buttons
+    showing = True
+    global buttons, background_x
     buttons = pg.sprite.Group()
-    background_x, showing = 0, True
-    Button((225, 282), 250, 50, (175, 54, 54), 'Играть', start_playing)
-    Button((225, 342), 250, 50, (55, 42, 42), 'Магазин', None)
+    Button((220, 282), 260, 50, (175, 54, 54), 'Играть', start_playing)
+    Button((220, 342), 260, 50, (55, 42, 42), 'Магазин', shop)
+    Button((220, 402), 260, 50, (55, 42, 42), 'Лидеры', leaderboard)
     while showing:
         for event in pg.event.get():
             if event.type == pg.QUIT:
@@ -291,6 +294,7 @@ def show_menu():
         screen.blit(text, (30, 14))
         buttons.draw(screen)
         buttons.update()
+        other_sprites.update()
         other_sprites.draw(screen)
         clock.tick(FPS)
         pg.display.flip()
@@ -370,6 +374,73 @@ def start_playing():
                            True, (5, 50, 14))
         screen.blit(text, (screen.get_width() - 104, 20))
         screen.blit(coin, (573, 28))
+        other_sprites.update()
+        other_sprites.draw(screen)
+        clock.tick(FPS)
+        pg.display.flip()
+
+
+def shop():
+    pass
+
+
+def leaderboard():  # таблица лидеров
+    global buttons, background_x
+    showing, buttons = True, pg.sprite.Group()
+    Button((80, 140), 60, 60, (55, 42, 42), '<', show_menu)  # выход в главное меню
+    while showing:
+        for event in pg.event.get():
+            if event.type == pg.QUIT:
+                if player.record != 0 and player.money != 0:
+                    csvlines.append({'nickname': player.nickname,
+                                     'record': player.record, 'money': player.money})
+                writer = csv.DictWriter(open('data.csv', 'w', encoding='utf-8'),
+                                        fieldnames=['nickname', 'record', 'money'],
+                                        delimiter=';', quotechar='"')
+                writer.writeheader()
+                writer.writerows(csvlines)  # сохранение данных игрока в csv файл
+                pg.quit()
+                quit()
+            if event.type == pg.MOUSEMOTION:  # курсор
+                if pg.mouse.get_focused():
+                    cursor.rect.x, cursor.rect.y = event.pos
+                else:
+                    cursor.rect.x = -100
+        if background_x - 0.5 <= -700:
+            background_x = 0
+        background_x -= 0.5
+        screen.blit(background, (background_x, 0))  # передвижение заднего фона
+        screen.blit(background, (background_x + screen.get_width(), 0))
+        rect = pg.Rect(150, 140, 400, 320)
+        pg.draw.rect(screen, (55, 42, 42), rect)
+        pg.draw.rect(screen, (100, 100, 100), rect, 4)
+        with open('data.csv', 'r', encoding='utf-8') as csvfile:
+            lines = [(x['nickname'], x['record'])
+                     for x in csv.DictReader(csvfile, delimiter=';', quotechar='"')]
+            lines = sorted(lines, key=lambda x: int(x[1]))
+            lines.reverse()
+            font, y = pg.font.Font('font.ttf', 60), 160
+        if len(lines) == 0:
+            text = font.render('Тут пусто...', True, (255, 255, 255))
+            screen.blit(text, (170, y))
+        else:
+            for i in range(5):
+                try:
+                    text = font.render('{}) {}: {}'.format(str(i + 1), str(lines[i][0]),
+                                                           str(lines[i][1])), True, (255, 255, 255))
+                    screen.blit(text, (170, y))
+                    y += 55
+                except IndexError:
+                    break
+        buttons.draw(screen)
+        buttons.update()
+        font = pg.font.Font('font.ttf', 100)
+        text = font.render('Лидеры', True, (5, 50, 14))
+        text_x = width // 2 - text.get_width() // 2
+        screen.blit(text, (text_x, 24))
+        font = pg.font.Font('font.ttf', 40)  # отображаемый ник
+        text = font.render(str(player.nickname), True, (5, 50, 14))
+        screen.blit(text, (30, 14))
         other_sprites.update()
         other_sprites.draw(screen)
         clock.tick(FPS)
