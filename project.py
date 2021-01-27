@@ -89,6 +89,68 @@ class Bird(AnimatedSprite):  # птичка
         self.flapping = True
         self.vy = -10
 
+    def game_over(self):
+        showing, new_record = True, False
+        if self.score_count > player.record:  # установка рекорда
+            player.record = self.score_count
+            new_record = True
+        money = round(self.score_count * (random.randint(80, 120) / 100))
+        # счет игрока умноженный на случайный коэфф. прибавляется к кол-ву монет
+        player.money += money
+        if money != 0:
+            Shadow(screen.get_width() - 104, 46, money)
+        Button((262, 218), 250, 64, (175, 54, 54), 'Играть снова', start_playing)
+        Button((188, 218), 64, 64, (55, 42, 42), '<', show_menu)  # выход в главное меню
+        while showing:
+            for event in pg.event.get():
+                if event.type == pg.QUIT:
+                    if player.record != 0 and player.money != 0:
+                        csvlines.append({'nickname': player.nickname,
+                                         'record': player.record, 'money': player.money})
+                    writer = csv.DictWriter(open('data.csv', 'w', encoding='utf-8'),
+                                            fieldnames=['nickname', 'record', 'money'],
+                                            delimiter=';', quotechar='"')
+                    writer.writeheader()
+                    writer.writerows(csvlines)  # сохранение данных игрока в csv файл
+                    pg.quit()
+                    quit()
+                if event.type == pg.MOUSEMOTION:  # курсор
+                    if pg.mouse.get_focused():
+                        cursor.rect.x, cursor.rect.y = event.pos
+                    else:
+                        cursor.rect.x = -100
+            screen.blit(background, (background_x, 0))
+            screen.blit(background, (background_x + screen.get_width(), 0))
+            birds.draw(screen)
+            tubes.draw(screen)
+            coins.draw(screen)
+            buttons.draw(screen)
+            buttons.update()
+            font = pg.font.Font('font.ttf', 40)  # отображаемый ник
+            text = font.render(str(player.nickname), True, (5, 50, 14))
+            screen.blit(text, (30, 14))
+            font = pg.font.Font('font.ttf', 38)  # рекорд игрока
+            if new_record:
+                text = font.render('Новый рекорд!!!', True, (5, 50, 14))
+            else:
+                text = font.render('Рекорд: ' + str(player.record), True, (5, 50, 14))
+            screen.blit(text, (30, 45))
+            font = pg.font.Font('font.ttf', 100)  # счетчик пройденных препятствий
+            text = font.render(str(self.score_count), True, (5, 50, 14))
+            text_x = width // 2 - text.get_width() // 2
+            screen.blit(text, (text_x, 20))
+            if player.money > 999999:
+                player.money = 999999
+            font = pg.font.Font('font.ttf', 42)  # кол-во монет
+            text = font.render(str(player.money).rjust(6, '0'),
+                               True, (5, 50, 14))
+            screen.blit(text, (screen.get_width() - 104, 20))
+            screen.blit(coin, (573, 28))
+            other_sprites.update()
+            other_sprites.draw(screen)
+            clock.tick(FPS)
+            pg.display.flip()
+
     def update(self):
         if self.flapping:
             if self.update_count % 5 == 0:  # анимация
@@ -109,16 +171,7 @@ class Bird(AnimatedSprite):  # птичка
             Shadow(self.rect.x + 10, self.rect.y - 60, moving=True)
         if pg.sprite.spritecollideany(self, tubes) or \
                 self.rect.y < 0 or self.rect.y + self.rect.h > 500:  # столкновение
-            if self.score_count > player.record:  # установка рекорда
-                player.record = self.score_count
-            money = round(self.score_count * (random.randint(80, 120) / 100))
-            # счет игрока умноженный на случайный коэфф. прибавляется к кол-ву монет
-            player.money += money
-            if money != 0:
-                Shadow(screen.get_width() - 104, 46, money)
-            Button((262, 218), 250, 64, (175, 54, 54), 'Играть снова', start_playing)
-            Button((188, 218), 64, 64, (55, 42, 42), '<', show_menu)
-            self.kill()
+            self.game_over()
 
 
 class Tube(pg.sprite.Sprite):  # препятствие
@@ -244,7 +297,7 @@ def show_menu():
 
 
 def start_playing():
-    global birds, tubes, borders, coins, buttons
+    global birds, tubes, borders, coins, buttons, background_x
     birds, tubes = pg.sprite.Group(), pg.sprite.Group()
     borders, coins = pg.sprite.Group(), pg.sprite.Group()
     buttons = pg.sprite.Group()
@@ -300,8 +353,6 @@ def start_playing():
         borders.update()
         buttons.draw(screen)
         buttons.update()
-        other_sprites.update()
-        other_sprites.draw(screen)
         font = pg.font.Font('font.ttf', 40)  # отображаемый ник
         text = font.render(str(player.nickname), True, (5, 50, 14))
         screen.blit(text, (30, 14))
@@ -319,6 +370,8 @@ def start_playing():
                            True, (5, 50, 14))
         screen.blit(text, (screen.get_width() - 104, 20))
         screen.blit(coin, (573, 28))
+        other_sprites.update()
+        other_sprites.draw(screen)
         clock.tick(FPS)
         pg.display.flip()
 
