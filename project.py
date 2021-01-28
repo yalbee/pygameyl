@@ -224,7 +224,7 @@ class Coin(AnimatedSprite):  # монетка
 class Shadow(pg.sprite.Sprite):  # тень при изменении кол-ва монет
     def __init__(self, x, y, text, moving=False):
         super().__init__(other_sprites)
-        self.image = pg.Surface((100, 40), pg.SRCALPHA)
+        self.image = pg.Surface((160, 50), pg.SRCALPHA)
         self.rect = pg.Rect(x, y, 50, 40)
         self.alpha, self.text, self.moving = 255, text, moving
         self.font = pg.font.Font('font.ttf', 50)
@@ -397,6 +397,9 @@ def buy_skin(number):
             player.s2 = 1
         if number == 3:
             player.s3 = 1
+    else:
+        Shadow(screen.get_width() - 180, 46, 'Не хватает')
+        Shadow(screen.get_width() - 180, 80, 'денег((')
 
 
 def select_skin(number):  # выбор текущего скина
