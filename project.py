@@ -14,9 +14,12 @@ class Player:  # профиль игрока
         with open('data.csv', 'r', encoding='utf-8') as csvfile:  # загрузка данных игрока из csv файла
             reader = csv.DictReader(csvfile, delimiter=';', quotechar='"')
             self.record, self.money = 0, 0
+            self.current_skin, self.s2, self.s3 = 'yellow_bird_sheet3x1.png', 0, 0
             for line in reader:
                 if line['nickname'] == self.nickname:
                     self.record, self.money = int(line['record']), int(line['money'])
+                    self.current_skin, self.s2, self.s3 = \
+                        line['current_skin'], int(line['s2']), int(line['s3'])
                 else:
                     csvlines.append(line)
 
@@ -81,7 +84,7 @@ class AnimatedSprite(pg.sprite.Sprite):
 class Bird(AnimatedSprite):  # птичка
     def __init__(self):
         super().__init__(pg.transform.scale(load_image(
-            'bird_sheet3x1.png'), (150, 40)), 3, 1, 50, 40, birds)
+            player.current_skin), (150, 40)), 3, 1, 50, 40, birds)
         self.rect = pg.Rect(50, 200, 50, 40)
         self.vy, self.flapping = 2, False
         self.score_count, self.update_count = 0, 0
@@ -99,17 +102,18 @@ class Bird(AnimatedSprite):  # птичка
         # счет игрока умноженный на случайный коэфф. прибавляется к кол-ву монет
         player.money += money
         if money != 0:
-            Shadow(screen.get_width() - 104, 46, money)
+            Shadow(screen.get_width() - 110, 46, '+' + str(money))
         Button((262, 218), 250, 64, (175, 54, 54), 'Играть снова', start_playing)
         Button((188, 218), 64, 64, (55, 42, 42), '<', show_menu)  # выход в главное меню
         while showing:
             for event in pg.event.get():
                 if event.type == pg.QUIT:
                     if player.record != 0 and player.money != 0:
-                        csvlines.append({'nickname': player.nickname,
-                                         'record': player.record, 'money': player.money})
+                        csvlines.append({'nickname': player.nickname, 'record': player.record,
+                                         'money': player.money, 'current_skin': player.current_skin,
+                                         's2': player.s2, 's3': player.s3})
                     writer = csv.DictWriter(open('data.csv', 'w', encoding='utf-8'),
-                                            fieldnames=['nickname', 'record', 'money'],
+                                            fieldnames=['nickname', 'record', 'money', 'current_skin', 's2', 's3'],
                                             delimiter=';', quotechar='"')
                     writer.writeheader()
                     writer.writerows(csvlines)  # сохранение данных игрока в csv файл
@@ -169,7 +173,7 @@ class Bird(AnimatedSprite):  # птичка
             self.score_count += 1
         if pg.sprite.spritecollide(self, coins, True):  # собрал монетку
             player.money += 10
-            Shadow(self.rect.x + 10, self.rect.y - 60, moving=True)
+            Shadow(self.rect.x + 10, self.rect.y - 60, '+10', moving=True)
         if pg.sprite.spritecollideany(self, tubes) or \
                 self.rect.y < 0 or self.rect.y + self.rect.h > 500:  # столкновение
             self.game_over()
@@ -217,16 +221,16 @@ class Coin(AnimatedSprite):  # монетка
             self.kill()
 
 
-class Shadow(pg.sprite.Sprite):  # тень после сбора монетки
-    def __init__(self, x, y, money=10, moving=False):
+class Shadow(pg.sprite.Sprite):  # тень при изменении кол-ва монет
+    def __init__(self, x, y, text, moving=False):
         super().__init__(other_sprites)
-        self.image = pg.Surface((50, 40), pg.SRCALPHA)
+        self.image = pg.Surface((100, 40), pg.SRCALPHA)
         self.rect = pg.Rect(x, y, 50, 40)
-        self.alpha, self.money, self.moving = 255, money, moving
+        self.alpha, self.text, self.moving = 255, text, moving
         self.font = pg.font.Font('font.ttf', 50)
 
     def update(self):
-        text = self.font.render('+' + str(self.money), True, pg.Color(230, 180, 40, self.alpha))
+        text = self.font.render(self.text, True, pg.Color(230, 180, 40, self.alpha))
         self.image.blit(text, (0, 0))
         if self.moving:
             self.rect = self.rect.move(-3, 0)
@@ -236,9 +240,9 @@ class Shadow(pg.sprite.Sprite):  # тень после сбора монетки
 
 
 class Button(pg.sprite.Sprite):  # кнопка
-    def __init__(self, pos, width, height, color, text, func):
+    def __init__(self, pos, width, height, color, text, func, n=None):
         super().__init__(buttons)
-        self.image = pg.Surface((width, height), pg.SRCALPHA)
+        self.image, self.n = pg.Surface((width, height), pg.SRCALPHA), n
         self.image.fill(color)
         self.rect, self.func = pg.Rect(pos[0], pos[1], width, height), func
         pg.draw.rect(self.image, (100, 100, 100), pg.Rect(0, 0, width, height), 3)
@@ -253,7 +257,10 @@ class Button(pg.sprite.Sprite):  # кнопка
                 self.rect.y < mouse_pos[1] < self.rect.y + self.rect.height:
             pg.draw.rect(screen, (255, 255, 255), self.rect, 3)  # рамка при наведении на кнопку
             if pg.mouse.get_pressed(3)[0] == 1:
-                self.func()
+                if self.n is not None:
+                    self.func(self.n)
+                else:
+                    self.func()
 
 
 def show_menu():
@@ -267,10 +274,11 @@ def show_menu():
         for event in pg.event.get():
             if event.type == pg.QUIT:
                 if player.record != 0 and player.money != 0:
-                    csvlines.append({'nickname': player.nickname,
-                                     'record': player.record, 'money': player.money})
+                    csvlines.append({'nickname': player.nickname, 'record': player.record,
+                                     'money': player.money, 'current_skin': player.current_skin,
+                                     's2': player.s2, 's3': player.s3})
                 writer = csv.DictWriter(open('data.csv', 'w', encoding='utf-8'),
-                                        fieldnames=['nickname', 'record', 'money'],
+                                        fieldnames=['nickname', 'record', 'money', 'current_skin', 's2', 's3'],
                                         delimiter=';', quotechar='"')
                 writer.writeheader()
                 writer.writerows(csvlines)  # сохранение данных игрока в csv файл
@@ -286,9 +294,9 @@ def show_menu():
         background_x -= 0.5
         screen.blit(background, (background_x, 0))  # передвижение заднего фона
         screen.blit(background, (background_x + screen.get_width(), 0))
-        font = pg.font.Font('font.ttf', 110)
+        font = pg.font.Font('font.ttf', 120)
         text = font.render('Flappy Bird', True, (5, 50, 14))
-        screen.blit(text, (screen.get_width() // 2 - text.get_width() // 2, 30))
+        screen.blit(text, (screen.get_width() // 2 - text.get_width() // 2, 40))
         font = pg.font.Font('font.ttf', 40)  # отображаемый ник
         text = font.render(str(player.nickname), True, (5, 50, 14))
         screen.blit(text, (30, 14))
@@ -313,10 +321,11 @@ def start_playing():
         for event in pg.event.get():
             if event.type == pg.QUIT:
                 if player.record != 0 and player.money != 0:
-                    csvlines.append({'nickname': player.nickname,
-                                     'record': player.record, 'money': player.money})
+                    csvlines.append({'nickname': player.nickname, 'record': player.record,
+                                     'money': player.money, 'current_skin': player.current_skin,
+                                     's2': player.s2, 's3': player.s3})
                 writer = csv.DictWriter(open('data.csv', 'w', encoding='utf-8'),
-                                        fieldnames=['nickname', 'record', 'money'],
+                                        fieldnames=['nickname', 'record', 'money', 'current_skin', 's2', 's3'],
                                         delimiter=';', quotechar='"')
                 writer.writeheader()
                 writer.writerows(csvlines)  # сохранение данных игрока в csv файл
@@ -380,8 +389,91 @@ def start_playing():
         pg.display.flip()
 
 
+def buy_skin(number):
+    if player.money >= 5000:
+        player.money -= 5000
+        Shadow(screen.get_width() - 110, 46, '-5000')
+        if number == 2:
+            player.s2 = 1
+        if number == 3:
+            player.s3 = 1
+
+
+def select_skin(number):  # выбор текущего скина
+    if number == 1 and player.current_skin != 'yellow_bird_sheet3x1.png':
+        player.current_skin = 'yellow_bird_sheet3x1.png'
+    if number == 2 and player.current_skin != 'green_bird_sheet3x1.png':
+        player.current_skin = 'green_bird_sheet3x1.png'
+    if number == 3 and player.current_skin != 'red_bird_sheet3x1.png':
+        player.current_skin = 'red_bird_sheet3x1.png'
+
+
 def shop():
-    pass
+    global buttons, background_x
+    showing, buttons = True, pg.sprite.Group()
+    Button((50, 200), 60, 60, (55, 42, 42), '<', show_menu)  # выход в главное меню
+    button1 = Button((140, 380), 130, 54, (175, 54, 54), 'Выбрать', select_skin, 1)
+    button2 = Button((285, 380), 130, 54, (175, 54, 54), '5000', buy_skin, 2)
+    button3 = Button((430, 380), 130, 54, (175, 54, 54), '5000', buy_skin, 3)
+    while showing:
+        for event in pg.event.get():
+            if event.type == pg.QUIT:
+                if player.record != 0 and player.money != 0:
+                    csvlines.append({'nickname': player.nickname, 'record': player.record,
+                                     'money': player.money, 'current_skin': player.current_skin,
+                                     's2': player.s2, 's3': player.s3})
+                writer = csv.DictWriter(open('data.csv', 'w', encoding='utf-8'),
+                                        fieldnames=['nickname', 'record', 'money', 'current_skin', 's2', 's3'],
+                                        delimiter=';', quotechar='"')
+                writer.writeheader()
+                writer.writerows(csvlines)  # сохранение данных игрока в csv файл
+                pg.quit()
+                quit()
+            if event.type == pg.MOUSEMOTION:  # курсор
+                if pg.mouse.get_focused():
+                    cursor.rect.x, cursor.rect.y = event.pos
+                else:
+                    cursor.rect.x = -100
+        if background_x - 0.5 <= -700:
+            background_x = 0
+        background_x -= 0.5
+        button1.kill()
+        button1 = Button((140, 380), 130, 54, (175, 54, 54), 'Выбрать', select_skin, 1)
+        if player.s2 == 1:
+            button2.kill()
+            button2 = Button((285, 380), 130, 54, (175, 54, 54), 'Выбрать', select_skin, 2)
+        if player.s3 == 1:
+            button3.kill()
+            button3 = Button((430, 380), 130, 54, (175, 54, 54), 'Выбрать', select_skin, 3)
+        if player.current_skin == 'yellow_bird_sheet3x1.png':
+            button1.kill()
+        if player.current_skin == 'green_bird_sheet3x1.png':
+            button2.kill()
+        if player.current_skin == 'red_bird_sheet3x1.png':
+            button3.kill()
+        screen.blit(background, (background_x, 0))  # передвижение заднего фона
+        screen.blit(background, (background_x + screen.get_width(), 0))
+        rect = pg.Rect(120, 200, 460, 264)
+        pg.draw.rect(screen, (55, 42, 42), rect)
+        pg.draw.rect(screen, (100, 100, 100), rect, 4)
+        buttons.draw(screen)
+        buttons.update()
+        font = pg.font.Font('font.ttf', 100)
+        text = font.render('Магазин', True, (5, 50, 14))
+        text_x = width // 2 - text.get_width() // 2
+        screen.blit(text, (text_x, 24))
+        font = pg.font.Font('font.ttf', 40)  # отображаемый ник
+        text = font.render(str(player.nickname), True, (5, 50, 14))
+        screen.blit(text, (30, 14))
+        font = pg.font.Font('font.ttf', 42)  # кол-во монет
+        text = font.render(str(player.money).rjust(6, '0'),
+                           True, (5, 50, 14))
+        screen.blit(text, (screen.get_width() - 104, 20))
+        screen.blit(coin, (573, 28))
+        other_sprites.update()
+        other_sprites.draw(screen)
+        clock.tick(FPS)
+        pg.display.flip()
 
 
 def leaderboard():  # таблица лидеров
@@ -392,10 +484,11 @@ def leaderboard():  # таблица лидеров
         for event in pg.event.get():
             if event.type == pg.QUIT:
                 if player.record != 0 and player.money != 0:
-                    csvlines.append({'nickname': player.nickname,
-                                     'record': player.record, 'money': player.money})
+                    csvlines.append({'nickname': player.nickname, 'record': player.record,
+                                     'money': player.money, 'current_skin': player.current_skin,
+                                     's2': player.s2, 's3': player.s3})
                 writer = csv.DictWriter(open('data.csv', 'w', encoding='utf-8'),
-                                        fieldnames=['nickname', 'record', 'money'],
+                                        fieldnames=['nickname', 'record', 'money', 'current_skin', 's2', 's3'],
                                         delimiter=';', quotechar='"')
                 writer.writeheader()
                 writer.writerows(csvlines)  # сохранение данных игрока в csv файл
