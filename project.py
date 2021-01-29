@@ -84,7 +84,7 @@ class AnimatedSprite(pg.sprite.Sprite):
 class Bird(AnimatedSprite):  # птичка
     def __init__(self):
         super().__init__(pg.transform.scale(load_image(
-            player.current_skin), (150, 40)), 3, 1, 50, 40, birds)
+            player.current_skin, -1), (150, 40)), 3, 1, 50, 40, birds)
         self.rect = pg.Rect(50, 200, 50, 40)
         self.vy, self.flapping = 2, False
         self.score_count, self.update_count = 0, 0
@@ -415,9 +415,9 @@ def shop():
     global buttons, background_x
     showing, buttons = True, pg.sprite.Group()
     Button((50, 200), 60, 60, (55, 42, 42), '<', show_menu)  # выход в главное меню
-    button1 = Button((140, 380), 130, 54, (175, 54, 54), 'Выбрать', select_skin, 1)
-    button2 = Button((285, 380), 130, 54, (175, 54, 54), '5000', buy_skin, 2)
-    button3 = Button((430, 380), 130, 54, (175, 54, 54), '5000', buy_skin, 3)
+    button1 = Button((140, 390), 130, 54, (175, 54, 54), 'Выбрать', select_skin, 1)
+    button2 = Button((285, 390), 130, 54, (175, 54, 54), '5000', buy_skin, 2)
+    button3 = Button((430, 390), 130, 54, (175, 54, 54), '5000', buy_skin, 3)
     while showing:
         for event in pg.event.get():
             if event.type == pg.QUIT:
@@ -440,25 +440,31 @@ def shop():
         if background_x - 0.5 <= -700:
             background_x = 0
         background_x -= 0.5
+        screen.blit(background, (background_x, 0))  # передвижение заднего фона
+        screen.blit(background, (background_x + screen.get_width(), 0))
+        rect = pg.Rect(120, 200, 460, 264)
+        pg.draw.rect(screen, (55, 42, 42), rect)
+        pg.draw.rect(screen, (100, 100, 100), rect, 4)
         button1.kill()
-        button1 = Button((140, 380), 130, 54, (175, 54, 54), 'Выбрать', select_skin, 1)
+        button1 = Button((140, 390), 130, 54, (175, 54, 54), 'Выбрать', select_skin, 1)
         if player.s2 == 1:
             button2.kill()
-            button2 = Button((285, 380), 130, 54, (175, 54, 54), 'Выбрать', select_skin, 2)
+            button2 = Button((285, 390), 130, 54, (175, 54, 54), 'Выбрать', select_skin, 2)
         if player.s3 == 1:
             button3.kill()
-            button3 = Button((430, 380), 130, 54, (175, 54, 54), 'Выбрать', select_skin, 3)
+            button3 = Button((430, 390), 130, 54, (175, 54, 54), 'Выбрать', select_skin, 3)
         if player.current_skin == 'yellow_bird_sheet3x1.png':
             button1.kill()
         if player.current_skin == 'green_bird_sheet3x1.png':
             button2.kill()
         if player.current_skin == 'red_bird_sheet3x1.png':
             button3.kill()
-        screen.blit(background, (background_x, 0))  # передвижение заднего фона
-        screen.blit(background, (background_x + screen.get_width(), 0))
-        rect = pg.Rect(120, 200, 460, 264)
-        pg.draw.rect(screen, (55, 42, 42), rect)
-        pg.draw.rect(screen, (100, 100, 100), rect, 4)
+        screen.blit(pg.transform.scale(load_image('yellow_bird_sheet3x1.png', -1),
+                                       (375, 100)).subsurface(pg.Rect(0, 0, 125, 100)), (142, 240))
+        screen.blit(pg.transform.scale(load_image('green_bird_sheet3x1.png', -1),
+                                       (375, 100)).subsurface(pg.Rect(0, 0, 125, 100)), (286, 240))
+        screen.blit(pg.transform.scale(load_image('red_bird_sheet3x1.png', -1),
+                                       (375, 100)).subsurface(pg.Rect(0, 0, 125, 100)), (430, 240))
         buttons.draw(screen)
         buttons.update()
         font = pg.font.Font('font.ttf', 100)
