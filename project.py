@@ -221,7 +221,7 @@ class Coin(AnimatedSprite):  # монетка
             self.kill()
 
 
-class Shadow(pg.sprite.Sprite):  # тень при изменении кол-ва монет
+class Shadow(pg.sprite.Sprite):  # еффект при изменении кол-ва монет или сборе монетки
     def __init__(self, x, y, text, moving=False):
         super().__init__(other_sprites)
         self.image = pg.Surface((160, 50), pg.SRCALPHA)
@@ -453,7 +453,7 @@ def shop():
         if player.s3 == 1:
             button3.kill()
             button3 = Button((430, 390), 130, 54, (175, 54, 54), 'Выбрать', select_skin, 3)
-        if player.current_skin == 'yellow_bird_sheet3x1.png':
+        if player.current_skin == 'yellow_bird_sheet3x1.png':  # кнопка выбранного скина пропадает
             button1.kill()
         if player.current_skin == 'green_bird_sheet3x1.png':
             button2.kill()
