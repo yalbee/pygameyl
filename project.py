@@ -23,6 +23,19 @@ class Player:  # профиль игрока
                 else:
                     csvlines.append(line)
 
+    def save(self):
+        if self.record != 0 and self.money != 0:
+            csvlines.append({'nickname': self.nickname, 'record': self.record,
+                             'money': self.money, 'current_skin': self.current_skin,
+                             's2': self.s2, 's3': self.s3})
+        writer = csv.DictWriter(open('data.csv', 'w', encoding='utf-8'),
+                                fieldnames=['nickname', 'record', 'money', 'current_skin', 's2', 's3'],
+                                delimiter=';', quotechar='"')
+        writer.writeheader()
+        writer.writerows(csvlines)  # сохранение данных игрока в csv файл
+        pg.quit()
+        quit()
+
 
 # файл с сохранениями каждый запуск перезаписывается а новые данные будут записаны в конец
 # обновленные профили сохраняются только после выхода
@@ -108,17 +121,7 @@ class Bird(AnimatedSprite):  # птичка
         while showing:
             for event in pg.event.get():
                 if event.type == pg.QUIT:
-                    if player.record != 0 and player.money != 0:
-                        csvlines.append({'nickname': player.nickname, 'record': player.record,
-                                         'money': player.money, 'current_skin': player.current_skin,
-                                         's2': player.s2, 's3': player.s3})
-                    writer = csv.DictWriter(open('data.csv', 'w', encoding='utf-8'),
-                                            fieldnames=['nickname', 'record', 'money', 'current_skin', 's2', 's3'],
-                                            delimiter=';', quotechar='"')
-                    writer.writeheader()
-                    writer.writerows(csvlines)  # сохранение данных игрока в csv файл
-                    pg.quit()
-                    quit()
+                    player.save()
                 if event.type == pg.MOUSEMOTION:  # курсор
                     if pg.mouse.get_focused():
                         cursor.rect.x, cursor.rect.y = event.pos
@@ -221,7 +224,7 @@ class Coin(AnimatedSprite):  # монетка
             self.kill()
 
 
-class Shadow(pg.sprite.Sprite):  # еффект при изменении кол-ва монет или сборе монетки
+class Shadow(pg.sprite.Sprite):  # тень при изменении кол-ва монет
     def __init__(self, x, y, text, moving=False):
         super().__init__(other_sprites)
         self.image = pg.Surface((160, 50), pg.SRCALPHA)
@@ -273,17 +276,7 @@ def show_menu():
     while showing:
         for event in pg.event.get():
             if event.type == pg.QUIT:
-                if player.record != 0 and player.money != 0:
-                    csvlines.append({'nickname': player.nickname, 'record': player.record,
-                                     'money': player.money, 'current_skin': player.current_skin,
-                                     's2': player.s2, 's3': player.s3})
-                writer = csv.DictWriter(open('data.csv', 'w', encoding='utf-8'),
-                                        fieldnames=['nickname', 'record', 'money', 'current_skin', 's2', 's3'],
-                                        delimiter=';', quotechar='"')
-                writer.writeheader()
-                writer.writerows(csvlines)  # сохранение данных игрока в csv файл
-                pg.quit()
-                quit()
+                player.save()
             if event.type == pg.MOUSEMOTION:  # курсор
                 if pg.mouse.get_focused():
                     cursor.rect.x, cursor.rect.y = event.pos
@@ -320,17 +313,7 @@ def start_playing():
     while playing:
         for event in pg.event.get():
             if event.type == pg.QUIT:
-                if player.record != 0 and player.money != 0:
-                    csvlines.append({'nickname': player.nickname, 'record': player.record,
-                                     'money': player.money, 'current_skin': player.current_skin,
-                                     's2': player.s2, 's3': player.s3})
-                writer = csv.DictWriter(open('data.csv', 'w', encoding='utf-8'),
-                                        fieldnames=['nickname', 'record', 'money', 'current_skin', 's2', 's3'],
-                                        delimiter=';', quotechar='"')
-                writer.writeheader()
-                writer.writerows(csvlines)  # сохранение данных игрока в csv файл
-                pg.quit()
-                quit()
+                player.save()
             if event.type == pg.MOUSEMOTION:  # курсор
                 if pg.mouse.get_focused():
                     cursor.rect.x, cursor.rect.y = event.pos
@@ -421,17 +404,7 @@ def shop():
     while showing:
         for event in pg.event.get():
             if event.type == pg.QUIT:
-                if player.record != 0 and player.money != 0:
-                    csvlines.append({'nickname': player.nickname, 'record': player.record,
-                                     'money': player.money, 'current_skin': player.current_skin,
-                                     's2': player.s2, 's3': player.s3})
-                writer = csv.DictWriter(open('data.csv', 'w', encoding='utf-8'),
-                                        fieldnames=['nickname', 'record', 'money', 'current_skin', 's2', 's3'],
-                                        delimiter=';', quotechar='"')
-                writer.writeheader()
-                writer.writerows(csvlines)  # сохранение данных игрока в csv файл
-                pg.quit()
-                quit()
+                player.save()
             if event.type == pg.MOUSEMOTION:  # курсор
                 if pg.mouse.get_focused():
                     cursor.rect.x, cursor.rect.y = event.pos
@@ -453,7 +426,7 @@ def shop():
         if player.s3 == 1:
             button3.kill()
             button3 = Button((430, 390), 130, 54, (175, 54, 54), 'Выбрать', select_skin, 3)
-        if player.current_skin == 'yellow_bird_sheet3x1.png':  # кнопка выбранного скина пропадает
+        if player.current_skin == 'yellow_bird_sheet3x1.png':
             button1.kill()
         if player.current_skin == 'green_bird_sheet3x1.png':
             button2.kill()
@@ -492,17 +465,7 @@ def leaderboard():  # таблица лидеров
     while showing:
         for event in pg.event.get():
             if event.type == pg.QUIT:
-                if player.record != 0 and player.money != 0:
-                    csvlines.append({'nickname': player.nickname, 'record': player.record,
-                                     'money': player.money, 'current_skin': player.current_skin,
-                                     's2': player.s2, 's3': player.s3})
-                writer = csv.DictWriter(open('data.csv', 'w', encoding='utf-8'),
-                                        fieldnames=['nickname', 'record', 'money', 'current_skin', 's2', 's3'],
-                                        delimiter=';', quotechar='"')
-                writer.writeheader()
-                writer.writerows(csvlines)  # сохранение данных игрока в csv файл
-                pg.quit()
-                quit()
+                player.save()
             if event.type == pg.MOUSEMOTION:  # курсор
                 if pg.mouse.get_focused():
                     cursor.rect.x, cursor.rect.y = event.pos
